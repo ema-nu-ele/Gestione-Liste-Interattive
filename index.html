@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Generatore Lista</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      margin: 0;
+      background: #f9f9f9;
+      color: #222;
+    }
+    header {
+      background-color: #ffffff;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    nav button {
+      margin-left: 10px;
+      background-color: #e0e0e0;
+      color: #333;
+    }
+    nav button:hover {
+      background-color: #d0d0d0;
+    }
+    main {
+      padding: 40px 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      font-size: 22px;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      background-color: #222;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    #listContainer, #savedLists {
+      max-width: 600px;
+      margin: 0 auto 40px auto;
+    }
+    .list-item {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+    .checkbox {
+      width: 26px;
+      height: 26px;
+      border: 1px solid #222;
+      border-radius: 6px;
+      margin-right: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      user-select: none;
+    }
+    .input-box {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .selection-checkbox {
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    .saved-list {
+      background-color: #ffffff;
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+    .saved-list input {
+      display: block;
+      margin-top: 5px;
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .list-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gestione Liste Interattive</h1>
+    <nav>
+      <button onclick="showSection('create')">Genera la tua lista</button>
+      <button onclick="showSection('saved')">Le tue liste</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="create" class="section active">
+      <h2>Genera la tua lista</h2>
+      <div class="button-group">
+        <button id="generateListBtn">Genera Lista</button>
+        <button id="addItemBtn">Aggiungi Elemento</button>
+        <button id="deleteItemBtn">Cancella Elemento</button>
+        <button id="saveListBtn">Salva la tua lista</button>
+      </div>
+      <div id="listContainer"></div>
+    </section>
+
+    <section id="saved" class="section">
+      <h2>Le tue liste</h2>
+      <div class="button-group">
+        <button onclick="enableListEdit()">Modifica Lista</button>
+        <button onclick="deleteSavedLists()">Cancella Lista</button>
+      </div>
+      <div id="savedLists"></div>
+    </section>
+  </main>
+
+  <script>
+    const generateListBtn = document.getElementById('generateListBtn');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const deleteItemBtn = document.getElementById('deleteItemBtn');
+    const saveListBtn = document.getElementById('saveListBtn');
+    const listContainer = document.getElementById('listContainer');
+    const savedLists = document.getElementById('savedLists');
+
+    let deleteMode = false;
+    let selectionCheckboxes = [];
+
+    function createListItem(text = '') {
+      const item = document.createElement('div');
+      item.className = 'list-item';
+
+      const checkbox = document.createElement('div');
+      checkbox.className = 'checkbox';
+      checkbox.addEventListener('click', () => {
+        checkbox.textContent = checkbox.textContent === '✓' ? '' : '✓';
+      });
+
+      const input = document.createElement('input');
+      input.className = 'input-box';
+      input.type = 'text';
+      input.placeholder = 'Inserisci elemento';
+      input.value = text;
+
+      const selector = document.createElement('input');
+      selector.type = 'checkbox';
+      selector.className = 'selection-checkbox hidden';
+
+      item.appendChild(checkbox);
+      item.appendChild(input);
+      item.appendChild(selector);
+
+      listContainer.appendChild(item);
+    }
+
+    generateListBtn.addEventListener('click', () => {
+      createListItem();
+      generateListBtn.style.display = 'none';
+    });
+
+    addItemBtn.addEventListener('click', () => {
+      if (generateListBtn.style.display === 'none') {
+        createListItem();
+      }
+    });
+
+    deleteItemBtn.addEventListener('click', () => {
+      if (!deleteMode) {
+        deleteMode = true;
+        deleteItemBtn.textContent = 'Fatto';
+        selectionCheckboxes = document.querySelectorAll('.selection-checkbox');
+        selectionCheckboxes.forEach(cb => cb.classList.remove('hidden'));
+      } else {
+        selectionCheckboxes.forEach(cb => {
+          if (cb.checked) {
+            listContainer.removeChild(cb.parentElement);
+          }
+        });
+        deleteMode = false;
+        deleteItemBtn.textContent = 'Cancella Elemento';
+      }
+    });
+
+    saveListBtn.addEventListener('click', () => {
+      const inputs = listContainer.querySelectorAll('.input-box');
+      const values = Array.from(inputs).map(input => input.value.trim()).filter(v => v !== '');
+      if (values.length === 0) return;
+
+      const listName = prompt('Inserisci il nome della lista:');
+      if (!listName) return;
+
+      const saved = document.createElement('div');
+      saved.className = 'saved-list';
+
+      const header = document.createElement('div');
+      header.className = 'list-name';
+      header.innerHTML = `<span>${listName}</span><input type="checkbox" class="delete-saved-checkbox">`;
+
+      const list = document.createElement('ul');
+      values.forEach(value => {
+        const li = document.createElement('li');
+        li.innerHTML = `<input type="text" value="${value}" disabled />`;
+        list.appendChild(li);
+      });
+
+      saved.appendChild(header);
+      saved.appendChild(list);
+
+      savedLists.appendChild(saved);
+
+      listContainer.innerHTML = '';
+      generateListBtn.style.display = 'inline-block';
+    });
+
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function enableListEdit() {
+      const saved = savedLists.querySelectorAll('.saved-list');
+      saved.forEach(list => {
+        const inputs = list.querySelectorAll('input[type="text"]');
+        inputs.forEach(input => input.disabled = !input.disabled);
+      });
+    }
+
+    function deleteSavedLists() {
+      const checkboxes = document.querySelectorAll('.delete-saved-checkbox');
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          cb.closest('.saved-list').remove();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
